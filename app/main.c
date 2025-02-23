@@ -11,32 +11,32 @@
 #include <fcntl.h>
 #include "../src/lab.h"
 
-static void explain_waitpid(int status)
-{
-    if (!WIFEXITED(status))
-    {
-        fprintf(stderr, "Child exited with status %d\n", WEXITSTATUS(status));
-    }
+// static void explain_waitpid(int status)
+// {
+//     if (!WIFEXITED(status))
+//     {
+//         fprintf(stderr, "Child exited with status %d\n", WEXITSTATUS(status));
+//     }
 
-    if (WIFSIGNALED(status))
-    {
-        fprintf(stderr, "Child exited via signal %d\n", WTERMSIG(status));
-    }
+//     if (WIFSIGNALED(status))
+//     {
+//         fprintf(stderr, "Child exited via signal %d\n", WTERMSIG(status));
+//     }
 
-    if (WIFSTOPPED(status))
-    {
-        fprintf(stderr, "Child stopped by %d\n", WSTOPSIG(status));
-    }
+//     if (WIFSTOPPED(status))
+//     {
+//         fprintf(stderr, "Child stopped by %d\n", WSTOPSIG(status));
+//     }
 
-    if (WIFCONTINUED(status))
-    {
-        fprintf(stderr, "Child was resumed by delivery of SIGCONT\n");
-    }
-}
+//     if (WIFCONTINUED(status))
+//     {
+//         fprintf(stderr, "Child was resumed by delivery of SIGCONT\n");
+//     }
+// }
 
 int main(int argc, char *argv[])
 {
-    parse_args(argc, argv);
+    // parse_args(argc, argv);
     // struct shell sh;
     // sh_init(&sh);
     // char *line = (char *)NULL;
@@ -97,4 +97,9 @@ int main(int argc, char *argv[])
     //     }
     // }
     // sh_destroy(&sh);
+
+    ///////////////////////////////
+
+    parse_args(argc, argv);
+
 }

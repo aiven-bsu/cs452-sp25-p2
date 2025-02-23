@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <string.h>
 
 #include "lab.h"
 
@@ -188,7 +189,24 @@ void parse_args(int argc, char **argv) {
  * @param env The environment variable
  * @return const char* The prompt
  */
-char *get_prompt(const char *env);
+char *get_prompt(const char *env) {
+    // get the value of the environment variable
+    const char *prompt = getenv(env);
+    if (prompt == NULL) {
+        prompt = "shell> ";
+    }
+    
+    // allocate memory for the prompt
+    char *new_prompt = strdup(prompt);
+    if (new_prompt == NULL) {
+        perror("strdup failed");
+        exit(EXIT_FAILURE);
+    }
+
+    return new_prompt;
+}
+
+
 
 /**
  * Changes the current working directory of the shell. Uses the linux system
