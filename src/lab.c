@@ -1,3 +1,9 @@
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <getopt.h>
+
 #include "lab.h"
 
     /**
@@ -88,6 +94,29 @@
     void print_pwd(struct shell *sh);
 ///////////////////////////////////////////////////////////////////
 
+// define flags
+#define FLAG_VERSION (1 << 0) // bit shift 1 to the left by 0
+#define FLAG_DEBUG (1 << 1) // bit shift 1 to the left by 1
+
+// static variables for the argument parsing
+static int flags = 0;
+static const char *cvalue = NULL;
+
+/**
+ * Helper function
+ * 
+ * @brief Print the arguments passed to the shell
+ *
+ * @param argc Number of arguments
+ * @param argv The arguments
+ */
+void print_args_values() {
+    printf("dflag = %d, vflag = %d, cvalue = %s optind = %d\n",
+            (flags & FLAG_DEBUG) ? 1 : 0, 
+            (flags & FLAG_VERSION) ? 1 : 0, 
+            cvalue, optind);
+}
+
 /**
  * @brief Parse command line args from the user when the shell was launched
  *
@@ -95,7 +124,59 @@
  * @param argv The arg array
  */
 void parse_args(int argc, char **argv) {
+    int opt;
+
+    // parse args/options
+    while ((opt = getopt(argc, argv, "vc:dh")) != -1) {
+        switch (opt) {
+            case 'v':
+                flags |= FLAG_VERSION; // enable the version flag
+
+                if (flags & FLAG_VERSION) {
+                    printf("%s version %.1f\n", argv[0], (double)lab_VERSION_MAJOR);
+                }
     
+                break;
+            case 'c':
+                cvalue = optarg;
+                setenv("MY_PROMPT", cvalue, 1);
+                break;
+            case 'd':
+                flags |= FLAG_DEBUG; // enable the debug flag
+                break;
+            case 'h':
+                // prints the usage message and options to the standard output
+                printf("Usage: %s [-option1] [-option2] [-option3] [...]\n", argv[0]);
+                printf("Options:\n");
+                printf("  -c \"MY_PROMPT\"\tSet the value for the enviornment variable MY_PROMPT\n");
+                printf("  -d\t\t\tTurn on the debug flag\n");
+                printf("  -h\t\t\tDisplay the help message\n");
+                printf("  -v\t\t\tPrint the version number\n");
+                return; // exit the function 
+            case '?':
+                if (optopt == 'c') {
+                    fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                } else if (isprint(optopt)) {
+                    fprintf(stderr, "Unknown option '-%c'.\n", optopt);
+                } else {
+                    fprintf(stderr, "Unknown option character '\\x%x'.\n", optopt);
+                }
+                break;
+            default:
+                printf("aborting...\n");
+                abort();
+        }
+    }
+
+    // if the debug flag is set
+    if (flags & FLAG_DEBUG) {
+        print_args_values();
+    }
+
+    if (argc < 2) {
+        printf("Usage: %s [-option1] [-option2] [-option3] [...]\n", argv[0]);
+        printf("For help: %s -h\n", argv[0]);
+    }
 }
 
 /**
