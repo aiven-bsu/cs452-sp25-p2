@@ -248,7 +248,29 @@ void cmd_free(char ** line);
  * @return The new line with no whitespace
  */
 
-char *trim_white(char *line);
+char *trim_white(char *line) {
+    // pointer to the start of the string
+    char *start = line;
+
+    // pointer to the end of the string
+    char *end = line + strlen(line) - 1;
+
+    // move the start pointer to the first non-whitespace character
+    while (isspace(*start)) {
+        start++;
+    }
+
+    // move the end pointer to the last non-whitespace character
+    while (end > start && isspace(*end)) {
+        end--;
+    }
+
+    // null-terminate the string
+    end[1] = '\0';
+
+    return start;
+}
+
 /**
  * @brief Takes an argument list and checks if the first argument is a
  * built in command such as exit, cd, jobs, etc. If the command is a
