@@ -207,8 +207,6 @@ char *get_prompt(const char *env) {
     return new_prompt;
 }
 
-
-
 /**
  * Changes the current working directory of the shell. Uses the linux system
  * call chdir. With no arguments the users home directory is used as the
@@ -297,7 +295,6 @@ void cmd_free(char ** line);
  * @param line The line to trim
  * @return The new line with no whitespace
  */
-
 char *trim_white(char *line) {
     // pointer to the start of the string
     char *start = line;
