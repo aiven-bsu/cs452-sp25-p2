@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <pwd.h>
+#include <signal.h>
 
 #include "lab.h"
 
@@ -257,11 +258,13 @@ int change_dir(char **dir) {
     }
 
     // Print the current working directory (for debugging purposes)
-    char cwd[1024];
-    if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        printf("Current working directory: %s\n", cwd);
-    } else {
-        perror("getcwd() error");
+    if (flags & FLAG_DEBUG) {
+        char cwd[1024];
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            printf("Current working directory: %s\n", cwd);
+        } else {
+            perror("getcwd() error");
+        }
     }
 
     return 0;
@@ -281,7 +284,7 @@ char **cmd_parse(char const *line) {
     size_t arg_max = sysconf(_SC_ARG_MAX);
     char **cmd = malloc(arg_max * sizeof(char *));
     if (cmd == NULL) {
-        ERROR("malloc failed");
+        perror("malloc failed");
         exit(EXIT_FAILURE);
     }
 
@@ -328,13 +331,16 @@ char **cmd_parse(char const *line) {
             size_t len = p - start;
             cmd[i] = strndup(start, len);
             if (cmd[i] == NULL) {
-                ERROR("strndup failed");
+                perror("strndup failed");
                 exit(EXIT_FAILURE);
             }
         }
 
         // Print the token (for debugging purposes)
-        printf("cmd[%d]: %s\n", i, cmd[i]);
+        if (flags & FLAG_DEBUG) {
+            printf("cmd[%d]: %s\n", i, cmd[i]);
+        }
+
         i++;
     }
 
@@ -342,11 +348,13 @@ char **cmd_parse(char const *line) {
     cmd[i] = NULL;
 
     // Print the final command array (for debugging purposes)
-    printf("Parsed command: ");
-    for (int j = 0; cmd[j] != NULL; j++) {
-        printf("%s ", cmd[j]);
+    if (flags & FLAG_DEBUG) {
+        printf("Parsed command: ");
+        for (int j = 0; cmd[j] != NULL; j++) {
+            printf("%s ", cmd[j]);
+        }
+        printf("\n");
     }
-    printf("\n");
 
     return cmd;
 }
@@ -417,9 +425,6 @@ bool do_builtin(struct shell *sh, char **argv) {
 
     // handle the "exit" command
     if (strcmp(argv[0], "exit") == 0) {
-        // free the memory allocated for the command
-        cmd_free(argv);
-
         // destroy the shell
         sh_destroy(sh);
 
@@ -462,7 +467,46 @@ bool do_builtin(struct shell *sh, char **argv) {
  *
  * @param sh
  */
-void sh_init(struct shell *sh);
+void sh_init(struct shell *sh) {
+     // check if the shell is NULL
+     if (sh == NULL) {
+        perror("NULL shell pointer");
+    }
+
+    /* See if we are running interactively.  */
+    sh->shell_terminal = STDIN_FILENO;
+    sh->shell_is_interactive = isatty (sh->shell_terminal);
+
+    if (sh->shell_is_interactive) {
+        /* Loop until we are in the foreground.  */
+        while (tcgetpgrp (sh->shell_terminal) != (sh->shell_pgid = getpgrp ()))
+            kill (sh->shell_pgid, SIGTTIN);
+
+        /* Ignore interactive and job-control signals.  */
+        signal (SIGINT, SIG_IGN);
+        signal (SIGQUIT, SIG_IGN);
+        signal (SIGTSTP, SIG_IGN);
+        signal (SIGTTIN, SIG_IGN);
+        signal (SIGTTOU, SIG_IGN);
+
+        /* Put ourselves in our own process group.  */
+        sh->shell_pgid = getpid ();
+        if (setpgid (sh->shell_pgid, sh->shell_pgid) < 0) {
+            // perror ("Couldn't put the shell in its own process group");
+            // exit (1);
+            perror("Couldn't put the shell in its own process group");
+        }
+
+        /* Grab control of the terminal.  */
+        tcsetpgrp (sh->shell_terminal, sh->shell_pgid);
+
+        /* Save default terminal attributes for shell.  */
+        tcgetattr (sh->shell_terminal, &sh->shell_tmodes);
+    }
+
+    // Set the prompt from the environment variable "MY_PROMPT"
+    sh->prompt = get_prompt("MY_PROMPT");
+}
 
 /**
  * @brief Destroy shell. Free any allocated memory and resources and exit
@@ -470,4 +514,16 @@ void sh_init(struct shell *sh);
  *
  * @param sh
  */
-void sh_destroy(struct shell *sh);
+void sh_destroy(struct shell *sh) {
+    // Reset the terminal
+    if (sh->shell_is_interactive) {
+        tcsetattr(sh->shell_terminal, TCSADRAIN, &sh->shell_tmodes);
+    }
+
+    // free the prompt
+    if (sh->prompt != NULL) {
+        free(sh->prompt);
+    }
+
+    // Do not free the shell structure itself
+}
