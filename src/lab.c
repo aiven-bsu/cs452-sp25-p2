@@ -282,7 +282,48 @@ char *trim_white(char *line) {
  * @param argv The command to check
  * @return True if the command was a built in command
  */
-bool do_builtin(struct shell *sh, char **argv);
+bool do_builtin(struct shell *sh, char **argv) {
+    // check if any arguments were passed
+    if (argv[0] == NULL) {
+        return false;
+    }
+
+    // handle the "exit" command
+    if (strcmp(argv[0], "exit") == 0) {
+        // free the memory allocated for the command
+        cmd_free(argv);
+
+        // destroy the shell
+        sh_destroy(sh);
+
+        // exit the program
+        exit(EXIT_SUCCESS);
+    }
+
+    // handle the "cd" command
+    if (strcmp(argv[0], "cd") == 0) {
+        // change to the home directory if no arguments are provided
+        if (argv[1] == NULL) {
+            // change to the home directory
+            if (change_dir(argv) != 0) {
+                // print the error message
+                ERROR("cd failed");
+            }
+
+            return true;
+        }
+
+        // change to the directory provided as an argument
+        if (change_dir(argv) != 0) {
+            // print the error message
+            ERROR("cd failed");
+        }
+
+        return true;
+    }
+
+    return false; // not a built-in command
+}
 
 /**
  * @brief Initialize the shell for use. Allocate all data structures
