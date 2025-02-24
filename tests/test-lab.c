@@ -25,7 +25,7 @@ void test_cmd_parse2(void)
   memset(expected,0,n);
   expected[0] = (char*)malloc(sizeof(char)*4);
   expected[1] = (char*)malloc(sizeof(char)*3);
-  expected[2] = (char*)NULL
+  expected[2] = (char*)NULL;
   strcpy(expected[0], "foo");
   strcpy(expected[1], "-v");
   TEST_ASSERT_EQUAL_STRING(expected[0],actual[0]);
@@ -121,8 +121,9 @@ void test_get_prompt_default(void)
 void test_get_prompt_custom(void)
 {
   const char* prmpt = "MY_PROMPT";
-  if(setenv(prmpt,"foo>",true)){
+  if(setenv(prmpt,"foo>",true)) {
        TEST_FAIL();
+  }
   
   char *prompt = get_prompt(prmpt);
   TEST_ASSERT_EQUAL_STRING(prompt, "foo>");
