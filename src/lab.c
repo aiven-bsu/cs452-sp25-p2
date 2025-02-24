@@ -277,14 +277,94 @@ int change_dir(char **dir) {
  *
  * @return The line read in a format suitable for exec
  */
-char **cmd_parse(char const *line);
+char **cmd_parse(char const *line) {
+    size_t arg_max = sysconf(_SC_ARG_MAX);
+    char **cmd = malloc(arg_max * sizeof(char *));
+    if (cmd == NULL) {
+        ERROR("malloc failed");
+        exit(EXIT_FAILURE);
+    }
+
+    int i = 0;
+    const char *p = line;
+    while (*p != '\0') {
+        // Skip leading whitespace
+        while (isspace(*p)) {
+            p++;
+        }
+
+        if (*p == '\0') {
+            break;
+        }
+
+        // Handle quoted strings
+        if (*p == '"') {
+            p++;
+            const char *start = p;
+            while (*p != '"' && *p != '\0') {
+                p++;
+            }
+
+            if (*p == '\0') {
+                perror("Unmatched quote");
+                exit(EXIT_FAILURE);
+            }
+
+            size_t len = p - start;
+            cmd[i] = strndup(start, len);
+            if (cmd[i] == NULL) {
+                perror("strndup failed");
+                exit(EXIT_FAILURE);
+            }
+            p++; // Skip closing quote
+
+        } else {
+            // Handle unquoted strings
+            const char *start = p;
+            while (!isspace(*p) && *p != '\0') {
+                p++;
+            }
+
+            size_t len = p - start;
+            cmd[i] = strndup(start, len);
+            if (cmd[i] == NULL) {
+                ERROR("strndup failed");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        // Print the token (for debugging purposes)
+        printf("cmd[%d]: %s\n", i, cmd[i]);
+        i++;
+    }
+
+    // Set the last element to NULL
+    cmd[i] = NULL;
+
+    // Print the final command array (for debugging purposes)
+    printf("Parsed command: ");
+    for (int j = 0; cmd[j] != NULL; j++) {
+        printf("%s ", cmd[j]);
+    }
+    printf("\n");
+
+    return cmd;
+}
 
 /**
  * @brief Free the line that was constructed with parse_cmd
  *
  * @param line the line to free
  */
-void cmd_free(char ** line);
+void cmd_free(char ** line) {
+    // free the memory allocated for the command
+    for (int i = 0; line[i] != NULL; i++) {
+        free(line[i]);
+    }
+
+    // free the memory allocated for the command
+    free(line);
+}
 
 /**
  * @brief Trim the whitespace from the start and end of a string.
