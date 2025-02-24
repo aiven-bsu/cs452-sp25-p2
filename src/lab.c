@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
+#include <pwd.h>
 
 #include "lab.h"
 
@@ -206,8 +207,6 @@ char *get_prompt(const char *env) {
     return new_prompt;
 }
 
-
-
 /**
  * Changes the current working directory of the shell. Uses the linux system
  * call chdir. With no arguments the users home directory is used as the
@@ -217,7 +216,56 @@ char *get_prompt(const char *env) {
  * @return  On success, zero is returned.  On error, -1 is returned, and
  * errno is set to indicate the error.
  */
-int change_dir(char **dir);
+int change_dir(char **dir) {
+    // check if the directory is NULL
+    if (dir[1] == NULL) {
+        // get the home directory
+        const char *home = getenv("HOME");
+
+        // change to the home directory if no arguments are provided
+        if (home == NULL) {
+            // get the user ID
+            uid_t uid = getuid();
+
+            // get the password entry for the user ID
+            struct passwd *pw = getpwuid(uid);
+
+            // check if the password entry is NULL
+            if (pw == NULL) {
+                perror("getpwuid failed");
+                return -1;
+            }
+
+            // get the user home directory
+            home = pw->pw_dir;
+        }
+
+        // after setting the home directory, check the return value of chdir
+        if (chdir(home) != 0) {
+            // print the error message
+            perror("chdir failed");
+            return -1;
+        }
+
+    } else {
+        // change to the directory provided as an argument
+        if (chdir(dir[1]) != 0) {
+            // print the error message
+            perror("chdir failed");
+            return -1;
+        }
+    }
+
+    // Print the current working directory (for debugging purposes)
+    char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("Current working directory: %s\n", cwd);
+    } else {
+        perror("getcwd() error");
+    }
+
+    return 0;
+}
 
 /**
  * @brief Convert line read from the user into to format that will work with
@@ -247,7 +295,6 @@ void cmd_free(char ** line);
  * @param line The line to trim
  * @return The new line with no whitespace
  */
-
 char *trim_white(char *line) {
     // pointer to the start of the string
     char *start = line;
@@ -282,7 +329,48 @@ char *trim_white(char *line) {
  * @param argv The command to check
  * @return True if the command was a built in command
  */
-bool do_builtin(struct shell *sh, char **argv);
+bool do_builtin(struct shell *sh, char **argv) {
+    // check if any arguments were passed
+    if (argv[0] == NULL) {
+        return false;
+    }
+
+    // handle the "exit" command
+    if (strcmp(argv[0], "exit") == 0) {
+        // free the memory allocated for the command
+        cmd_free(argv);
+
+        // destroy the shell
+        sh_destroy(sh);
+
+        // exit the program
+        exit(EXIT_SUCCESS);
+    }
+
+    // handle the "cd" command
+    if (strcmp(argv[0], "cd") == 0) {
+        // change to the home directory if no arguments are provided
+        if (argv[1] == NULL) {
+            // change to the home directory
+            if (change_dir(argv) != 0) {
+                // print the error message
+                perror("cd failed");
+            }
+
+            return true;
+        }
+
+        // change to the directory provided as an argument
+        if (change_dir(argv) != 0) {
+            // print the error message
+            perror("cd failed");
+        }
+
+        return true;
+    }
+
+    return false; // not a built-in command
+}
 
 /**
  * @brief Initialize the shell for use. Allocate all data structures
