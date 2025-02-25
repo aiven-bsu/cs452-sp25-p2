@@ -1,4 +1,7 @@
 #include <string.h>
+#include <signal.h>
+#include <stdio.h>
+#include <readline/history.h>
 #include "harness/unity.h"
 #include "../src/lab.h"
 
@@ -165,23 +168,8 @@ void test_shell_init() {
   struct shell sh;
   sh_init(&sh);
   TEST_ASSERT_EQUAL(0, sh.shell_terminal);
-  // TEST_ASSERT_EQUAL(1, sh.shell_is_interactive); // fails github actions (not interactive)
-  // TEST_ASSERT_EQUAL(getpgrp(), sh.shell_pgid); // fails github actions (process group management behave differently in non-interactive mode)
   TEST_ASSERT_NOT_NULL(&sh.shell_tmodes);
   TEST_ASSERT_NOT_NULL(sh.prompt);
-  sh_destroy(&sh);
-}
-
-// Test builtin "exit" command
-void test_builtin_exit() {
-  struct shell sh;
-  sh_init(&sh);
-  char *line = (char *)malloc(sizeof(char) * 5);
-  strcpy(line, "exit");
-  char **cmd = cmd_parse(line);
-  TEST_ASSERT_TRUE(do_builtin(&sh, cmd));
-  free(line);
-  cmd_free(cmd);
   sh_destroy(&sh);
 }
 
@@ -196,6 +184,66 @@ void test_builtin_printhistory() {
   TEST_ASSERT_TRUE(do_builtin(&sh, cmd));
   free(line);
   cmd_free(cmd);
+  sh_destroy(&sh);
+}
+
+// Test command history navigation
+void test_command_history_navigation(void) {
+  struct shell sh;
+  sh_init(&sh);
+
+  // Add commands to the history
+  add_history("ls -l");
+  add_history("cd /");
+  add_history("echo Hello");
+
+  // Simulate navigating the history
+  // char *line = (char *)malloc(sizeof(char) * 13);
+  // strcpy(line, "printhistory");
+  // char **cmd = cmd_parse(line);
+  // TEST_ASSERT_TRUE(do_builtin(&sh, cmd));
+
+  // call printhistory function with print_to_stdout = 0
+
+  // Verify the history
+  HIST_ENTRY **history_entries = history_list();
+  TEST_ASSERT_NOT_NULL(history_entries);
+  TEST_ASSERT_EQUAL_STRING("ls -l", history_entries[0]->line);
+  TEST_ASSERT_EQUAL_STRING("cd /", history_entries[1]->line);
+  TEST_ASSERT_EQUAL_STRING("echo Hello", history_entries[2]->line);
+  
+  // free(line);
+  // cmd_free(cmd);
+  sh_destroy(&sh);
+}
+
+// Test builtin invalid (non-existent) command
+void test_builtin_invalid_cmd() {
+  struct shell sh;
+  sh_init(&sh);
+  char *line = (char *)malloc(sizeof(char) * 11);
+  strcpy(line, "invalidcmd");
+  char **cmd = cmd_parse(line);
+  // check if the command is a built-in command
+  TEST_ASSERT_FALSE(do_builtin(&sh, cmd));
+  free(line);
+  cmd_free(cmd);
+  sh_destroy(&sh);
+}
+
+// Test signal handling
+void test_signal_handling() {
+  struct shell sh;
+  sh_init(&sh);
+
+  // Simulate sending SIGINT to the shell
+  raise(SIGINT);
+  // Verify that the shell is still running
+  TEST_ASSERT_TRUE(sh.shell_is_interactive);
+  // Simulate sending SIGTSTP to the shell
+  raise(SIGTSTP);
+  // Verify that the shell is still running
+  TEST_ASSERT_TRUE(sh.shell_is_interactive);
   sh_destroy(&sh);
 }
 
@@ -218,7 +266,9 @@ int main(void) {
     // Additional Tests
     RUN_TEST(test_shell_init);
     RUN_TEST(test_builtin_printhistory);
-    // RUN_TEST(test_builtin_exit); // cannot test exit command as it will exit the program
+    RUN_TEST(test_command_history_navigation);
+    RUN_TEST(test_builtin_invalid_cmd);
+    RUN_TEST(test_signal_handling);
 
   return UNITY_END();
 }

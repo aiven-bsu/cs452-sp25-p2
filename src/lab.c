@@ -98,7 +98,7 @@ char *get_prompt(const char *env) {
         prompt = "shell> ";
     }
     
-    // allocate memory for the prompt
+    // internally allocate memory for the prompt
     char *new_prompt = strdup(prompt);
     if (new_prompt == NULL) {
         perror("strdup failed");
@@ -180,6 +180,7 @@ char **cmd_parse(char const *line) {
             p++;
         }
 
+        // Break if end of the string
         if (*p == '\0') {
             break;
         }
@@ -192,6 +193,7 @@ char **cmd_parse(char const *line) {
                 p++;
             }
 
+            // Check for unmatched quote
             if (*p == '\0') {
                 perror("Unmatched quote");
                 exit(EXIT_FAILURE);
@@ -287,7 +289,7 @@ char *trim_white(char *line) {
  * 
  * @brief Print the history of the shell
  */
-void print_history() {
+void print_history(int print_to_stdout) {
     // print the history
     HIST_ENTRY **the_history_list;
     the_history_list = history_list();
@@ -295,11 +297,15 @@ void print_history() {
     // check if the history list is not NULL
     if (the_history_list) {
         // get the length of the history list
-        printf("History length: %d\n", history_length);
+        if (print_to_stdout) {
+            printf("History length: %d\n", history_length);
+        }
 
         // print the history list
         for (int i = 0; the_history_list[i]; i++) {
-            printf("%d: %s\n", i, the_history_list[i]->line);
+            if (print_to_stdout) {
+                printf("%d: %s\n", i, the_history_list[i]->line);
+            }
         }
     }
 }
@@ -357,7 +363,7 @@ bool do_builtin(struct shell *sh, char **argv) {
     // handle built-in "printhistory" command
     if (strcmp(argv[0], "printhistory") == 0) {
         // print the history
-        print_history();
+        print_history(1);
 
         // update the status
         status = true;
