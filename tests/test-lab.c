@@ -5,6 +5,22 @@
 #include "harness/unity.h"
 #include "../src/lab.h"
 
+// Redirect stdout to capture the output (hide prints from the console)
+#define CAPTURE_OUTPUT_START() \
+    int stdout_fd = dup(STDOUT_FILENO); \
+    FILE *stdout_file = tmpfile(); \
+    int stdout_file_fd = fileno(stdout_file); \
+    dup2(stdout_file_fd, STDOUT_FILENO);
+
+#define CAPTURE_OUTPUT_END() \
+    fflush(stdout); \
+    dup2(stdout_fd, STDOUT_FILENO); \
+    fseek(stdout_file, 0, SEEK_SET); \
+    char output[1024]; \
+    fread(output, sizeof(char), sizeof(output) - 1, stdout_file); \
+    output[sizeof(output) - 1] = '\0'; \
+    fclose(stdout_file);
+
 void setUp(void) {
   // set stuff up here
 
@@ -197,23 +213,24 @@ void test_command_history_navigation(void) {
   add_history("cd /");
   add_history("echo Hello");
 
-  // Simulate navigating the history
-  // char *line = (char *)malloc(sizeof(char) * 13);
-  // strcpy(line, "printhistory");
-  // char **cmd = cmd_parse(line);
-  // TEST_ASSERT_TRUE(do_builtin(&sh, cmd));
+  // Capture output of printhistory command
+  CAPTURE_OUTPUT_START();
+  char *line = (char *)malloc(sizeof(char) * 13);
+  strcpy(line, "printhistory");
+  char **cmd = cmd_parse(line);
+  TEST_ASSERT_TRUE(do_builtin(&sh, cmd));
+  CAPTURE_OUTPUT_END();
 
-  // call printhistory function with print_to_stdout = 0
 
-  // Verify the history
+  // Verify the history entries
   HIST_ENTRY **history_entries = history_list();
   TEST_ASSERT_NOT_NULL(history_entries);
   TEST_ASSERT_EQUAL_STRING("ls -l", history_entries[0]->line);
   TEST_ASSERT_EQUAL_STRING("cd /", history_entries[1]->line);
   TEST_ASSERT_EQUAL_STRING("echo Hello", history_entries[2]->line);
   
-  // free(line);
-  // cmd_free(cmd);
+  free(line);
+  cmd_free(cmd);
   sh_destroy(&sh);
 }
 

@@ -288,6 +288,7 @@ char *trim_white(char *line) {
  * Helper function
  * 
  * @brief Print the history of the shell
+ * @param print_to_stdout flag to print to stdout
  */
 void print_history(int print_to_stdout) {
     // print the history
@@ -423,6 +424,7 @@ void sh_init(struct shell *sh) {
 void sh_destroy(struct shell *sh) {
     // Reset the terminal
     if (sh->shell_is_interactive) {
+        // Put the shell back in the foreground
         tcsetattr(sh->shell_terminal, TCSADRAIN, &sh->shell_tmodes);
     }
 
@@ -431,5 +433,5 @@ void sh_destroy(struct shell *sh) {
         free(sh->prompt);
     }
 
-    // Do not free the shell structure itself
+    // Do not free the shell structure itself 
 }
