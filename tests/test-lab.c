@@ -159,6 +159,8 @@ void test_ch_dir_root(void)
 }
 
 /** My Additional Tests */
+
+// Test shell initialization
 void test_shell_init() {
   struct shell sh;
   sh_init(&sh);
@@ -167,6 +169,33 @@ void test_shell_init() {
   // TEST_ASSERT_EQUAL(getpgrp(), sh.shell_pgid); // fails github actions (process group management behave differently in non-interactive mode)
   TEST_ASSERT_NOT_NULL(&sh.shell_tmodes);
   TEST_ASSERT_NOT_NULL(sh.prompt);
+  sh_destroy(&sh);
+}
+
+// Test builtin "exit" command
+void test_builtin_exit() {
+  struct shell sh;
+  sh_init(&sh);
+  char *line = (char *)malloc(sizeof(char) * 5);
+  strcpy(line, "exit");
+  char **cmd = cmd_parse(line);
+  TEST_ASSERT_TRUE(do_builtin(&sh, cmd));
+  free(line);
+  cmd_free(cmd);
+  sh_destroy(&sh);
+}
+
+// Test builtin "printhistory" command
+void test_builtin_printhistory() {
+  struct shell sh;
+  sh_init(&sh);
+  char *line = (char *)malloc(sizeof(char) * 13);
+  strcpy(line, "printhistory");
+  char **cmd = cmd_parse(line);
+  // check if the command is a built-in command
+  TEST_ASSERT_TRUE(do_builtin(&sh, cmd));
+  free(line);
+  cmd_free(cmd);
   sh_destroy(&sh);
 }
 
@@ -188,6 +217,8 @@ int main(void) {
 
     // Additional Tests
     RUN_TEST(test_shell_init);
+    RUN_TEST(test_builtin_printhistory);
+    // RUN_TEST(test_builtin_exit); // cannot test exit command as it will exit the program
 
   return UNITY_END();
 }

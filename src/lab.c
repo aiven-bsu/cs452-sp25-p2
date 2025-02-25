@@ -6,96 +6,9 @@
 #include <string.h>
 #include <pwd.h>
 #include <signal.h>
+#include <readline/history.h>
 
 #include "lab.h"
-
-    /**
-     * @brief Print the shell prompt to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_prompt(struct shell *sh);
-    
-    /**
-     * @brief Read a line from the terminal. This function will block until
-     * a line is read from the terminal. This function will allocate memory
-     * that must be freed by the caller.
-     *
-     * @param sh The shell
-     * @return char* The line read from the terminal
-     */
-    char *read_line(struct shell *sh);
-    
-    /**
-     * @brief Print the help message to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_help(struct shell *sh);
-    
-    /**
-     * @brief Print the version message to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_version(struct shell *sh);
-    
-    /**
-     * @brief Print the current working directory to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_cwd(struct shell *sh);
-    
-    /**
-     * @brief Print the current working directory to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_jobs(struct shell *sh);
-    
-    /**
-     * @brief Print the current working directory to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_fg(struct shell *sh, char **argv);
-    
-    /**
-     * @brief Print the current working directory to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_bg(struct shell *sh, char **argv);
-    
-    /**
-     * @brief Print the current working directory to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_kill(struct shell *sh, char **argv);
-    
-    /**
-     * @brief Print the current working directory to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_exit(struct shell *sh);
-    
-    /**
-     * @brief Print the current working directory to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_cd(struct shell *sh, char **argv);
-    
-    /**
-     * @brief Print the current working directory to the terminal
-     *
-     * @param sh The shell
-     */
-    void print_pwd(struct shell *sh);
-///////////////////////////////////////////////////////////////////
 
 // define flags
 #define FLAG_VERSION (1 << 0) // bit shift 1 to the left by 0
@@ -171,7 +84,7 @@ void parse_args(int argc, char **argv) {
         }
     }
 
-    // if the debug flag is set
+    // print argument values if the debug flag is set
     if (flags & FLAG_DEBUG) {
         print_args_values();
     }
@@ -257,9 +170,10 @@ int change_dir(char **dir) {
         }
     }
 
-    // Print the current working directory (for debugging purposes)
+    // Print the current working directory if the debug flag is set
     if (flags & FLAG_DEBUG) {
         char cwd[1024];
+        // get the current working directory
         if (getcwd(cwd, sizeof(cwd)) != NULL) {
             printf("Current working directory: %s\n", cwd);
         } else {
@@ -336,7 +250,7 @@ char **cmd_parse(char const *line) {
             }
         }
 
-        // Print the token (for debugging purposes)
+        // Print the token if the debug flag is set
         if (flags & FLAG_DEBUG) {
             printf("cmd[%d]: %s\n", i, cmd[i]);
         }
@@ -347,7 +261,7 @@ char **cmd_parse(char const *line) {
     // Set the last element to NULL
     cmd[i] = NULL;
 
-    // Print the final command array (for debugging purposes)
+    // Print the final command array if the debug flag is set
     if (flags & FLAG_DEBUG) {
         printf("Parsed command: ");
         for (int j = 0; cmd[j] != NULL; j++) {
@@ -406,6 +320,17 @@ char *trim_white(char *line) {
     return start;
 }
 
+void print_history() {
+    // print the history
+    HIST_ENTRY **the_list;
+    the_list = history_list();
+    if (the_list) {
+        for (int i = 0; the_list[i]; i++) {
+            printf("%d: %s\n", i, the_list[i]->line);
+        }
+    }
+}
+
 /**
  * @brief Takes an argument list and checks if the first argument is a
  * built in command such as exit, cd, jobs, etc. If the command is a
@@ -418,15 +343,21 @@ char *trim_white(char *line) {
  * @return True if the command was a built in command
  */
 bool do_builtin(struct shell *sh, char **argv) {
+    // return value
+    bool status = false;
+
     // check if any arguments were passed
     if (argv[0] == NULL) {
-        return false;
+        return status;
     }
 
     // handle the "exit" command
     if (strcmp(argv[0], "exit") == 0) {
         // destroy the shell
         sh_destroy(sh);
+
+        // update the status
+        status = true;
 
         // exit the program
         exit(EXIT_SUCCESS);
@@ -442,7 +373,10 @@ bool do_builtin(struct shell *sh, char **argv) {
                 perror("cd failed");
             }
 
-            return true;
+            // update the status
+            status = true;
+
+            return status;
         }
 
         // change to the directory provided as an argument
@@ -451,10 +385,27 @@ bool do_builtin(struct shell *sh, char **argv) {
             perror("cd failed");
         }
 
-        return true;
+        // update the status
+        status = true;
+
+        return status;
     }
 
-    return false; // not a built-in command
+    // handle built-in "printhistory" command
+    if (strcmp(argv[0], "printhistory") == 0) {
+        // print the history
+        print_history();
+
+        // update the status
+        status = true;
+
+        return status;
+    }
+
+    // update the status
+    status = false;
+
+    return status; // not a built-in command
 }
 
 /**
