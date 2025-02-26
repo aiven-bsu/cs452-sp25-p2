@@ -23,7 +23,7 @@ system calls, process management, and user input handling must be completed.
 make
 ```
 
-## Testing
+## Unit Testing
 
 ```bash
 make check
