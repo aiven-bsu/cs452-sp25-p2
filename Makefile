@@ -47,6 +47,14 @@ $(BUILD_DIR)/%.c.o: %.c
 check: $(TARGET_TEST)
 	ASAN_OPTIONS=detect_leaks=1 ./$<
 
+# valgrind check for main program
+valgrind1: $(TARGET_EXEC)
+	valgrind --leak-check=full --show-leak-kinds=all -s ./$<
+
+# valgrind check for test program
+valgrind2: $(TARGET_TEST)
+	valgrind --leak-check=full --show-leak-kinds=all -s ./$<
+
 .PHONY: clean
 clean:
 	$(RM) -rf $(BUILD_DIR) $(TARGET_EXEC) $(TARGET_TEST)

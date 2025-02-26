@@ -66,6 +66,7 @@ int main(int argc, char *argv[]) {
                 signal(SIGTTIN, SIG_DFL);
                 signal(SIGTTOU, SIG_DFL);
                 execvp(cmd[0], cmd);
+                perror("execvp failed");
                 exit(EXIT_FAILURE);
             }
             else if (pid < 0)
@@ -97,5 +98,5 @@ int main(int argc, char *argv[]) {
     }
     
     sh_destroy(&sh);
-
+    clear_history(); // clean up the readline history
 }
