@@ -29,6 +29,16 @@ make
 make check
 ```
 
+## Valgrind Testing
+```bash
+# Runs valgrind on the main program
+make valgrind1
+```
+```bash
+# Runs valgrind on the test program
+make valgrind2
+```
+
 ## Clean
 
 ```bash
